@@ -16,6 +16,9 @@ Adafruit_MPU6050 mpu;
 #define IN3 18
 #define IN4 19
 
+// Vibration sensor pin
+#define VIBRATION_PIN 2
+
 void setup() {
   Serial.begin(115200);
   
@@ -40,7 +43,7 @@ void setup() {
   server.on("/forward", handleForward);
   server.on("/backward", handleBackward);
   server.on("/stop", handleStop);
-  server.on("/gyro", handleGyro);
+  server.on("/sensors", handleSensors);
 
   server.begin();
 
@@ -53,6 +56,8 @@ void setup() {
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, LOW);
+
+  pinMode(VIBRATION_PIN, INPUT);
 }
 
 void loop() {
@@ -78,7 +83,7 @@ void handleRoot() {
     button#forward { background-color: #4CAF50; }\
     button#backward { background-color: #f44336; }\
     button#stop { background-color: #555; }\
-    #gyro { font-size: 20px; }\
+    #sensors { font-size: 20px; }\
   </style>\
   </head>\
   <body>\
@@ -86,15 +91,15 @@ void handleRoot() {
   <button id='forward' onclick=\"sendData('/forward')\">Move Forward</button>\
   <button id='backward' onclick=\"sendData('/backward')\">Move Backward</button>\
   <button id='stop' onclick=\"sendData('/stop')\">Stop</button>\
-  <h2>Gyro Readings</h2>\
-  <p id=\"gyro\">Loading...</p>\
+  <h2>Sensor Readings</h2>\
+  <p id=\"sensors\">Loading...</p>\
   <script>\
     function sendData(url) {\
       fetch(url).then(response => response.text()).then(data => console.log(data));\
     }\
     setInterval(function() {\
-      fetch('/gyro').then(response => response.text()).then(data => {\
-        document.getElementById('gyro').innerHTML = data;\
+      fetch('/sensors').then(response => response.text()).then(data => {\
+        document.getElementById('sensors').innerHTML = data;\
       });\
     }, 1000);\
   </script>\
@@ -130,10 +135,11 @@ void handleStop() {
   server.send(200, "text/plain", "Stopped");
 }
 
-void handleGyro() {
+void handleSensors() {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
-  String data = "Gyro X: " + String(g.gyro.x) + ", Gyro Y: " + String(g.gyro.y) + ", Gyro Z: " + String(g.gyro.z);
+  int vibration = digitalRead(VIBRATION_PIN);
+  String data = "Gyro X: " + String(g.gyro.x) + ", Gyro Y: " + String(g.gyro.y) + ", Gyro Z: " + String(g.gyro.z) + ", Vibration: " + (vibration == HIGH ? "Detected" : "Not Detected");
   Serial.println(data);
   server.send(200, "text/plain", data);
 }
